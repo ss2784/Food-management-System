@@ -1,0 +1,136 @@
+-- Creating necessary tables
+CREATE TABLE MENU (
+ Mrid INT,
+ Dishname VARCHAR(100)
+);
+CREATE TABLE RESTAURANT (
+ Rid INT PRIMARY KEY,
+ Rname VARCHAR(100),
+ Rphone VARCHAR(12),
+ Raddress VARCHAR(200),
+ Cuisine VARCHAR(50),
+ Rating NUMERIC(2, 1),
+ Main_rid INT
+);
+CREATE TABLE ORDERS (
+ Ocid INT,
+ Oid_ INT
+);
+CREATE TABLE COUPON (
+ Code VARCHAR(12) PRIMARY KEY,
+ Maxdisc INT NOT NULL,
+ Exp_date TIMESTAMP NOT NULL,
+ Minord INT NOT NULL
+);
+CREATE TABLE ORDER_ (
+ Oid_ INT PRIMARY KEY,
+ Odid INT,
+ Orid INT
+);
+CREATE TABLE DELIVERY_PERSON (
+ Did INT PRIMARY KEY,
+ Dfname VARCHAR(50),
+ Dlname VARCHAR(50),
+ Drating NUMERIC(2, 1)
+);
+CREATE TABLE CUSTOMER (
+ Cid INT PRIMARY KEY,
+ Fname VARCHAR(50),
+ Lname VARCHAR(50),
+ Cphone VARCHAR(15),
+ CAddress VARCHAR(200),
+ Email VARCHAR(100)
+);
+CREATE TABLE MAKES (
+ Mcid INT,
+ Moid INT
+);
+CREATE TABLE ITEMS (
+ Ioid INT,
+ Iprice FLOAT
+);
+CREATE TABLE TRANSACTION_ (
+ Tid INT PRIMARY KEY,
+ Amount FLOAT,
+ Mode VARCHAR(10)
+);
+CREATE TABLE CITEMS (
+ Ciprice FLOAT,
+ Ccart_id INT,
+ ciqty INT DEFAULT 1
+);
+CREATE TABLE CART (
+ Cart_id INT PRIMARY KEY,
+ total_price FLOAT DEFAULT 0
+);
+-- Inserting sample data
+INSERT INTO MENU (Mrid, Dishname) VALUES (1, 'Pasta'), (1, 'Pizza'), (2, 'Burger');
+INSERT INTO RESTAURANT (Rid, Rname, Rphone, Raddress, Cuisine, Rating, Main_rid)
+VALUES
+(1, 'Restaurant A', '1234567890', 'Address A', 'Italian', 4.5, 1),
+(2, 'Restaurant B', '0987654321', 'Address B', 'American', 4.0, 2);
+INSERT INTO ORDERS (Ocid, Oid_) VALUES (1, 1), (2, 2);
+INSERT INTO COUPON (Code, Maxdisc, Exp_date, Minord) VALUES ('DISCOUNT10', 10,
+'2025-01-01 00:00:00', 100);
+INSERT INTO ORDER_ (Oid_, Odid, Orid) VALUES (1, 1, 1), (2, 2, 2);
+INSERT INTO DELIVERY_PERSON (Did, Dfname, Dlname, Drating) VALUES (1, 'John',
+'Doe', 4.7), (2, 'Jane', 'Doe', 3.8);
+INSERT INTO CUSTOMER (Cid, Fname, Lname, Cphone, CAddress, Email) VALUES
+(1, 'Alice', 'Smith', '1111111111', '123 Main St', 'alice@example.com'),
+(2, 'Bob', 'Brown', '2222222222', '456 Elm St', 'bob@example.com');
+INSERT INTO MAKES (Mcid, Moid) VALUES (1, 1), (2, 2);
+INSERT INTO ITEMS (Ioid, Iprice) VALUES (1, 15.0), (2, 20.0);
+INSERT INTO TRANSACTION_ (Tid, Amount, Mode) VALUES (1, 35.0, 'Card');
+INSERT INTO CITEMS (Ciprice, Ccart_id, ciqty) VALUES (10.0, 1, 2);
+INSERT INTO CART (Cart_id, total_price) VALUES (1, 20.0);
+SELECT Dishname AS DISHES_IN_R1
+FROM MENU
+JOIN RESTAURANT ON Mrid = Rid
+WHERE Rid = 1;
+SELECT Ocid AS CUSTOMER_ID, COUNT(*) AS NUMBER_OF_ORDERS
+FROM ORDERS
+GROUP BY Ocid;
+SELECT *
+FROM COUPON
+WHERE NOW() > Exp_date;
+SELECT Rid, Rname, MAX(Rating) AS Max_Rating
+FROM RESTAURANT
+GROUP BY Rid, Rname;
+SELECT Oid_, Did, Dfname, Dlname
+FROM DELIVERY_PERSON
+JOIN ORDER_ ON Did = Odid;
+ALTER TABLE DELIVERY_PERSON ADD COLUMN REMARKS VARCHAR(20);
+UPDATE DELIVERY_PERSON SET REMARKS =
+CASE
+ WHEN Drating > 4 AND Drating <= 5 THEN 'EXPERT'
+ WHEN Drating > 3 AND Drating <= 4 THEN 'PROFICIENT'
+ WHEN Drating > 2 AND Drating <= 3 THEN 'COMPETENT'
+ WHEN Drating > 1 AND Drating <= 2 THEN 'SATISFACTORY'
+ WHEN Drating >= 0 AND Drating <= 1 THEN 'NOVICE'
+END;
+SELECT fname AS customer_name, Cphone as customer_phone, CAddress as
+customer_address, Rname as restaurant_name, Rphone as restaurant_phone, Raddress as
+restaurant_address
+FROM RESTAURANT
+JOIN ORDER_ ON Rid = Orid
+JOIN MAKES ON Oid_ = Moid
+JOIN CUSTOMER ON Cid = Mcid
+WHERE Odid = 1;
+SELECT Cid, Fname
+FROM CUSTOMER
+WHERE Cid NOT IN (SELECT Ocid FROM ORDERS);
+SELECT Oid_, SUM(Iprice) AS TOTAL_PRICE
+FROM ORDER_
+JOIN ITEMS ON Oid_ = Ioid
+GROUP BY Oid_;
+CREATE OR REPLACE VIEW ORDER_TOTAL AS
+SELECT Oid_, SUM(Iprice) AS TOTAL_PRICE
+FROM ORDER_
+JOIN ITEMS ON Oid_ = Ioid
+GROUP BY Oid_;
+WITH TEMP AS (
+ SELECT AVG(TOTAL_PRICE) AS AVERAGE FROM ORDER_TOTAL
+)
+SELECT Oid_, TOTAL_PRICE
+FROM ORDER_TOTAL, TEMP
+WHERE ORDER_TOTAL.TOTAL_PRICE > TEMP.AVERAGE;
